@@ -1,0 +1,25 @@
+name: Sync Files to RepoB
+
+on:
+  push:
+    paths:
+      - '**.txt'  
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repoA
+        uses: actions/checkout@v3
+
+      - name: Clone repoB
+        run: |
+          git clone https://github.com/andremadu/repoB.git
+          cp -r $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }}) repoB/
+          cd repoB
+          git config user.name "andremadu"
+          git config user.email "andremm2412@gmail.com"
+          git add .
+          git commit -m "Sync files from repoA"
+          git push https://andremadu:${{ secrets.GH_TOKEN }}@github.com/TEU-USUARIO/repoB.git
