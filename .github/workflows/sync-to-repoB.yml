@@ -22,4 +22,4 @@ jobs:
           git config user.email "andremm2412@gmail.com"
           git add .
           git commit -m "Sync files from repoA"
-          git push https://andremadu:${{ secrets.GH_TOKEN }}@github.com/TEU-USUARIO/repoB.git
+          git push https://andremadu:${{ secrets.GH_TOKEN }}@github.com/andremadu/repoB.git
