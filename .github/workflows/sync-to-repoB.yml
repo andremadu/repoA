@@ -18,8 +18,8 @@ jobs:
           git clone https://andremadu:${{ secrets.GH_TOKEN }}@github.com/andremadu/repoB.git
           cd repoB
 
-          # Captura os ficheiros txt adicionados/modificados no último commit
-          changed_files=$(git log -1 --name-only --pretty=format: | grep '\.txt$' || true)
+          # Captura os ficheiros .txt adicionados/modificados entre os dois últimos commits
+          changed_files=$(git diff --name-only HEAD^ HEAD | grep '\.txt$' || true)
 
           if [ -z "$changed_files" ]; then
             echo "Nenhum ficheiro .txt para sincronizar."
@@ -28,7 +28,7 @@ jobs:
 
           echo "Ficheiros a copiar: $changed_files"
 
-          # Copia os ficheiros para o repoB mantendo estrutura de diretórios
+          # Copia os ficheiros mantendo estrutura
           for file in $changed_files; do
             mkdir -p "$(dirname "$file")"
             cp "../$file" "$file"
@@ -44,3 +44,4 @@ jobs:
             git commit -m "Sync files from repoA"
             git push origin main
           fi
+
