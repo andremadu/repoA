@@ -12,14 +12,16 @@ jobs:
     steps:
       - name: Checkout repoA
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 2  # Traz pelo menos dois commits para comparação
 
       - name: Clone repoB
         run: |
           git clone https://andremadu:${{ secrets.GH_TOKEN }}@github.com/andremadu/repoB.git
           cd repoB
 
-          # Captura os ficheiros .txt adicionados/modificados entre os dois últimos commits
-          changed_files=$(git diff --name-only HEAD^ HEAD | grep '\.txt$' || true)
+          # Comparação com o commit anterior
+          changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.txt' || true)
 
           if [ -z "$changed_files" ]; then
             echo "Nenhum ficheiro .txt para sincronizar."
@@ -28,12 +30,13 @@ jobs:
 
           echo "Ficheiros a copiar: $changed_files"
 
-          # Copia os ficheiros mantendo estrutura
+          # Copiar os ficheiros para repoB mantendo a estrutura
           for file in $changed_files; do
-            mkdir -p "$(dirname "$file")"
-            cp "../$file" "$file"
+            mkdir -p "$(dirname "repoB/$file")"
+            cp --parents "$file" repoB/
           done
 
+          cd repoB
           git config user.name "andremadu"
           git config user.email "andremm2412@gmail.com"
 
