@@ -15,13 +15,20 @@ jobs:
         with:
           fetch-depth: 2  # Traz pelo menos dois commits para comparação
 
+      - name: Verificar histórico do repoA
+        run: |
+          commit_count=$(git rev-list --count HEAD)
+          if [ "$commit_count" -lt 2 ]; then
+            echo "RepoA tem apenas um commit. Nada para comparar."
+            exit 0
+          fi
+
       - name: Clone repoB
         run: |
           git clone https://andremadu:${{ secrets.GH_TOKEN }}@github.com/andremadu/repoB.git
-          cd repoB
-
-          # Comparação com o commit anterior
-          changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.txt' || true)
+          
+          # Captura os ficheiros .txt modificados entre os dois últimos commits
+          changed_files=$(git diff --name-only HEAD^ HEAD -- '*.txt' || true)
 
           if [ -z "$changed_files" ]; then
             echo "Nenhum ficheiro .txt para sincronizar."
@@ -30,13 +37,14 @@ jobs:
 
           echo "Ficheiros a copiar: $changed_files"
 
-          # Copiar os ficheiros para repoB mantendo a estrutura
+          cd repoB
+
+          # Copia os ficheiros mantendo a estrutura
           for file in $changed_files; do
-            mkdir -p "$(dirname "repoB/$file")"
-            cp --parents "$file" repoB/
+            mkdir -p "$(dirname "$file")"
+            cp "../$file" "$file"
           done
 
-          cd repoB
           git config user.name "andremadu"
           git config user.email "andremm2412@gmail.com"
 
@@ -47,4 +55,5 @@ jobs:
             git commit -m "Sync files from repoA"
             git push origin main
           fi
+
 
