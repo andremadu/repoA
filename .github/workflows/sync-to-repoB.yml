@@ -38,5 +38,3 @@ jobs:
           git config user.email "andremm2412@gmail.com"
           git add .
           git diff --cached --quiet || git commit -m "Sync files from repoA" && git push origin main
-
-
