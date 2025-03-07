@@ -23,10 +23,8 @@ jobs:
             exit 0
           fi
 
-      - name: Clone repoB
+      - name: Clone e sincronizar com repoB
         run: |
-          git clone https://andremadu:${{ secrets.GH_TOKEN }}@github.com/andremadu/repoB.git
-          
           # Captura os ficheiros .txt modificados entre os dois últimos commits
           changed_files=$(git diff --name-only HEAD^ HEAD -- '*.txt' || true)
 
@@ -35,28 +33,48 @@ jobs:
             exit 0
           fi
 
-          echo "Ficheiros a copiar: $changed_files"
-
-          cd repoB
-
-          # Copia os ficheiros mantendo a estrutura, verificando se existem
+          echo "Ficheiros detectados para sincronização: $changed_files"
+          
+          # Clone repoB
+          git clone https://andremadu:${{ secrets.GH_TOKEN }}@github.com/andremadu/repoB.git
+          
+          # Lista para rastrear alterações feitas
+          alteracoes_feitas=false
+          
+          # Processa cada arquivo
           for file in $changed_files; do
-            if [ -f "../$file" ]; then
-              mkdir -p "$(dirname "$file")"
-              cp "../$file" "$file"
+            if [ -f "$file" ]; then
+              # O arquivo existe no repoA, então devemos copiá-lo para repoB
+              mkdir -p "repoB/$(dirname "$file")"
+              cp "$file" "repoB/$file"
               echo "Copiado: $file"
+              alteracoes_feitas=true
             else
-              echo "Arquivo não encontrado: $file (ignorando)"
+              # O arquivo foi excluído no repoA, então devemos excluí-lo do repoB também
+              if [ -f "repoB/$file" ]; then
+                rm "repoB/$file"
+                echo "Removido: $file (excluído no repoA)"
+                alteracoes_feitas=true
+              else
+                echo "Arquivo não encontrado: $file (ignorando)"
+              fi
             fi
           done
 
-          git config user.name "andremadu"
-          git config user.email "andremm2412@gmail.com"
-
-          git add .
-          if git diff --cached --quiet; then
-            echo "Nenhuma alteração para sincronizar."
+          # Configurar e fazer commit apenas se houver alterações
+          if [ "$alteracoes_feitas" = true ]; then
+            cd repoB
+            git config user.name "andremadu"
+            git config user.email "andremm2412@gmail.com"
+            git add .
+            
+            if git diff --cached --quiet; then
+              echo "Não há alterações para commit após processamento."
+            else
+              git commit -m "Sync files from repoA - atualizações e exclusões"
+              git push origin main
+              echo "Alterações sincronizadas com sucesso."
+            fi
           else
-            git commit -m "Sync files from repoA"
-            git push origin main
+            echo "Nenhuma alteração a ser sincronizada."
           fi
