@@ -39,10 +39,15 @@ jobs:
 
           cd repoB
 
-          # Copia os ficheiros mantendo a estrutura
+          # Copia os ficheiros mantendo a estrutura, verificando se existem
           for file in $changed_files; do
-            mkdir -p "$(dirname "$file")"
-            cp "../$file" "$file"
+            if [ -f "../$file" ]; then
+              mkdir -p "$(dirname "$file")"
+              cp "../$file" "$file"
+              echo "Copiado: $file"
+            else
+              echo "Arquivo não encontrado: $file (ignorando)"
+            fi
           done
 
           git config user.name "andremadu"
@@ -55,5 +60,3 @@ jobs:
             git commit -m "Sync files from repoA"
             git push origin main
           fi
-
-
