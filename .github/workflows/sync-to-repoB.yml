@@ -1,59 +1,40 @@
 name: Sync Files to RepoB
-
 on:
   push:
     paths:
       - '**.txt'  
-
 jobs:
   sync:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repoA
         uses: actions/checkout@v3
         with:
-          fetch-depth: 2  # Traz pelo menos dois commits para comparação
+          fetch-depth: 1
 
-      - name: Verificar histórico do repoA
+      - name: Get changed txt files
+        id: changed-files
         run: |
-          commit_count=$(git rev-list --count HEAD)
-          if [ "$commit_count" -lt 2 ]; then
-            echo "RepoA tem apenas um commit. Nada para comparar."
-            exit 0
-          fi
+          git fetch origin ${{ github.event.before }}
+          echo "files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- '*.txt' | tr '\n' ' ')" >> $GITHUB_OUTPUT
 
-      - name: Clone repoB
+      - name: Clone and sync repoB
+        if: steps.changed-files.outputs.files != ''
         run: |
+          echo "Sincronizando arquivos: ${{ steps.changed-files.outputs.files }}"
+          
+          # Clone repoB
           git clone https://andremadu:${{ secrets.GH_TOKEN }}@github.com/andremadu/repoB.git
           
-          # Captura os ficheiros .txt modificados entre os dois últimos commits
-          changed_files=$(git diff --name-only HEAD^ HEAD -- '*.txt' || true)
-
-          if [ -z "$changed_files" ]; then
-            echo "Nenhum ficheiro .txt para sincronizar."
-            exit 0
-          fi
-
-          echo "Ficheiros a copiar: $changed_files"
-
+          # Copiar arquivos para repoB
           cd repoB
-
-          # Copia os ficheiros mantendo a estrutura
-          for file in $changed_files; do
+          for file in ${{ steps.changed-files.outputs.files }}; do
             mkdir -p "$(dirname "$file")"
             cp "../$file" "$file"
           done
-
+          
+          # Commit e push para repoB
           git config user.name "andremadu"
           git config user.email "andremm2412@gmail.com"
-
           git add .
-          if git diff --cached --quiet; then
-            echo "Nenhuma alteração para sincronizar."
-          else
-            git commit -m "Sync files from repoA"
-            git push origin main
-          fi
-
-
+          git diff --cached --quiet || git commit -m "Sync files from repoA" && git push origin main
